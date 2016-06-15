@@ -464,14 +464,17 @@ GCode::extrude(ExtrusionLoop loop, std::string description, double speed)
 std::string
 GCode::extrude(const ExtrusionEntity &entity, std::string description, double speed)
 {
+    std::string gcode = ";start extrusion\n";
     if (const ExtrusionPath* path = dynamic_cast<const ExtrusionPath*>(&entity)) {
-        return this->extrude(*path, description, speed);
+        gcode += this->extrude(*path, description, speed);
     } else if (const ExtrusionLoop* loop = dynamic_cast<const ExtrusionLoop*>(&entity)) {
-        return this->extrude(*loop, description, speed);
+        gcode += this->extrude(*loop, description, speed);
     } else {
         CONFESS("Invalid argument supplied to extrude()");
         return "";
     }
+    gcode += ";end extrusion\n";
+    return gcode;
 }
 
 std::string
@@ -604,10 +607,12 @@ GCode::travel_to(const Point &point, ExtrusionRole role, std::string comment)
     Polyline travel;
     travel.append(this->last_pos());
     travel.append(point);
-    
+        std::string gcode;
     // check whether a straight travel move would need retraction
     bool needs_retraction = this->needs_retraction(travel, role);
-    
+    std::stringstream ss;
+    ss << ";needs retr 1: " << needs_retraction << "\n";
+    gcode += ss.str();
     // if a retraction would be needed, try to use avoid_crossing_perimeters to plan a
     // multi-hop travel path inside the configuration space
     if (needs_retraction
@@ -617,15 +622,23 @@ GCode::travel_to(const Point &point, ExtrusionRole role, std::string comment)
         
         // check again whether the new travel path still needs a retraction
         needs_retraction = this->needs_retraction(travel, role);
+        std::stringstream ss;
+        ss << ";needs retr 2: " << needs_retraction << "\n";
+        gcode += ss.str();
         //if (needs_retraction && this->layer_index > 1) exit(0);
     }
-    
+    //needs_retraction = true; //vladi
+    //if (this->first_layer) needs_retraction = false;//vladi
     // Re-allow avoid_crossing_perimeters for the next travel moves
     this->avoid_crossing_perimeters.disable_once = false;
     this->avoid_crossing_perimeters.use_external_mp_once = false;
     
     // generate G-code for the travel move
-    std::string gcode;
+    if (travel.lines().begin()->length() * SCALING_FACTOR > 2 && this->first_layer) needs_retraction = true;
+    //std::size_t found = comment.find("infill");
+    if (comment.find("infill") != std::string::npos && this->first_layer) needs_retraction = false;
+    
+
     if (needs_retraction) gcode += this->retract();
     
     // use G1 because we rely on paths being straight (G0 may make round paths)
@@ -634,8 +647,21 @@ GCode::travel_to(const Point &point, ExtrusionRole role, std::string comment)
     for (Lines::const_iterator line = lines.begin(); line != lines.end(); ++line) {
 	    const double line_length = line->length() * SCALING_FACTOR;
 	    path_length += line_length;
-
-	    gcode += this->writer.travel_to_xy(this->point_to_gcode(line->b), comment);
+        std::stringstream ss1;
+        ss1 << ";Will Travel: " << line_length << ", on layer height: " << this->layer->print_z <<  ", id" << this->layer->id() << "\n";
+        gcode += ss1.str();
+        
+/*        if (this->first_layer) {
+           gcode += this->writer.travel_to_z(0.1, "extrude move");
+           double fil_sq = 3.14f *1.75f*1.75f/4;
+           double exr_line = 0.1f*0.5f;
+           double e = exr_line *line_length/fil_sq;
+           //double e_per_mm = this->writer.extruder()->e_per_mm3 * path.mm3_per_mm;
+           gcode += this->writer.extrude_to_xy(this->point_to_gcode(line->b), e, comment);
+           gcode += this->writer.travel_to_z(this->layer->print_z, "return");
+        } else {*/
+            gcode += this->writer.travel_to_xy(this->point_to_gcode(line->b), comment);
+       // }
     }
 
     if (this->config.cooling)
@@ -713,7 +739,7 @@ GCode::unretract()
 {
     std::string gcode;
     gcode += this->writer.unlift();
-    gcode += this->writer.unretract();
+    gcode += this->writer.unretract(this->first_layer);
     return gcode;
 }
 

@@ -554,7 +554,9 @@ sub process_layer {
         
         foreach my $extruder_id (@extruders) {
             $gcode .= $self->_gcodegen->set_extruder($extruder_id);
+            my $i = 0;
             foreach my $island (@{ $by_extruder{$extruder_id} }) {
+                $gcode.= ";START island: " . $i . ", Layer Z:" . $layer->print_z . "\n";
                 if ($self->print->config->infill_first) {
                     $gcode .= $self->_extrude_infill($island->{infill} // {});
                     $gcode .= $self->_extrude_perimeters($island->{perimeters} // {});
@@ -562,6 +564,7 @@ sub process_layer {
                     $gcode .= $self->_extrude_perimeters($island->{perimeters} // {});
                     $gcode .= $self->_extrude_infill($island->{infill} // {});
                 }
+                $gcode.= ";END island: " . $i++ . ", Layer Z:" . $layer->print_z . "\n";
             }
         }
     }
@@ -588,10 +591,16 @@ sub _extrude_perimeters {
     my ($self, $entities_by_region) = @_;
     
     my $gcode = "";
+    my $i = 0;
     foreach my $region_id (sort keys %$entities_by_region) {
         $self->_gcodegen->config->apply_static($self->print->get_region($region_id)->config);
-        $gcode .= $self->_gcodegen->extrude($_, 'perimeter', -1)
-            for @{ $entities_by_region->{$region_id} };
+        $gcode .= ';Perimeter for region_id:'.$region_id."\n";
+         $i++;
+        for (@{ $entities_by_region->{$region_id} }) {
+           $gcode .= ";part: ".$i."\n";
+           $i++;
+           $gcode .= $self->_gcodegen->extrude($_, 'perimeter', -1, $i);
+        }
     }
     return $gcode;
 }

@@ -43,7 +43,7 @@ class GCodeWriter {
     std::string extrude_to_xyz(const Pointf3 &point, double dE, const std::string &comment = std::string());
     std::string retract();
     std::string retract_for_toolchange();
-    std::string unretract();
+    std::string unretract(const bool first_layer=false);
     std::string lift();
     std::string unlift();
     Pointf3 get_position() const;

@@ -185,7 +185,8 @@ GCodeWriter::set_acceleration(unsigned int acceleration)
     this->_last_acceleration = acceleration;
     
     std::ostringstream gcode;
-    gcode << "M204 S" << acceleration;
+//    gcode << "M204 S" << acceleration;
+    gcode << "M201 X" << acceleration << " Y" << acceleration;
     if (this->config.gcode_comments) gcode << " ; adjust acceleration";
     gcode << "\n";
     
@@ -464,7 +465,7 @@ GCodeWriter::_retract(double length, double restart_extra, const std::string &co
 }
 
 std::string
-GCodeWriter::unretract()
+GCodeWriter::unretract(const bool first_layer)
 {
     std::ostringstream gcode;
     
@@ -481,8 +482,14 @@ GCodeWriter::unretract()
             gcode << this->reset_e();
         } else {
             // use G1 instead of G0 because G0 will blend the restart with the previous travel move
-            gcode << "G1 " << this->_extrusion_axis << E_NUM(this->_extruder->E)
+            if (first_layer) {
+                gcode << "G1 " << this->_extrusion_axis << E_NUM(this->_extruder->E) + 0.2
+                           << " F" << 300;
+                this->_extruder->extrude(0.2);
+            } else {
+                gcode << "G1 " << this->_extrusion_axis << E_NUM(this->_extruder->E)
                            << " F" << this->_extruder->retract_speed_mm_min;
+            }
             if (this->config.gcode_comments) gcode << " ; unretract";
             gcode << "\n";
         }
