@@ -1,0 +1,1 @@
+slic3r.pl --datadir ..\..\Slic3r\cfg 

@@ -462,7 +462,7 @@ GCode::extrude(ExtrusionLoop loop, std::string description, double speed)
 }
 
 std::string
-GCode::extrude(const ExtrusionEntity &entity, std::string description, double speed)
+GCode::extrude(const ExtrusionEntity &entity, std::string description, double speed, int partNum)
 {
     std::string gcode = ";start extrusion\n";
     if (const ExtrusionPath* path = dynamic_cast<const ExtrusionPath*>(&entity)) {

@@ -1292,6 +1292,14 @@ PrintConfigDef::PrintConfigDef()
     def->sidetext = "mm";
     def->cli = "z-offset=f";
     def->default_value = new ConfigOptionFloat(0);
+
+
+    def = this->add("zz_extra_verbose", coBool);
+    def->label = "zz_extra_verbose";
+    def->tooltip = "zz_extra_verbose";
+    def->sidetext = "zz_extra_verbose";
+    def->cli = "zz-extra-verbose!";
+    def->default_value = new ConfigOptionBool(false);
 }
 
 PrintConfigDef print_config_def;
