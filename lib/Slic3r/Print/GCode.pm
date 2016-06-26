@@ -592,9 +592,9 @@ sub _extrude_perimeters {
     
     my $gcode = "";
     my $i = 0;
-#    if ($self->print->config->zz_extra_verbose) {
-#        $gcode .= ';AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa\n';
-#    }
+    if ($self->print->config->zz_extra_verbose) {
+        $gcode .= ";AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa\n";
+    }
     foreach my $region_id (sort keys %$entities_by_region) {
         $self->_gcodegen->config->apply_static($self->print->get_region($region_id)->config);
         $gcode .= ';Perimeter for region_id:'.$region_id."\n";
@@ -602,7 +602,7 @@ sub _extrude_perimeters {
         for (@{ $entities_by_region->{$region_id} }) {
            $gcode .= ";part: ".$i."\n";
            $i++;
-           $gcode .= $self->_gcodegen->extrude($_, 'perimeter', -1, $i);
+           $gcode .= $self->_gcodegen->extrude($_, 'perimeter', -1);
         }
     }
     return $gcode;

@@ -481,7 +481,7 @@ sub build {
         support_material_contact_distance dont_support_bridges
         notes
         complete_objects extruder_clearance_radius extruder_clearance_height
-        gcode_comments output_filename_format
+        gcode_comments zz_extra_verbose output_filename_format
         post_process
         perimeter_extruder infill_extruder solid_infill_extruder
         support_material_extruder support_material_interface_extruder
@@ -700,6 +700,8 @@ sub build {
         {
             my $optgroup = $page->new_optgroup('Output file');
             $optgroup->append_single_option_line('gcode_comments');
+            $optgroup->append_single_option_line('zz_extra_verbose');
+             
             
             {
                 my $option = $optgroup->get_option('output_filename_format');

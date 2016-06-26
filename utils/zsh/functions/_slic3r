@@ -27,6 +27,7 @@ _arguments -S \
     '--extrusion-axis[specify letter associated with the extrusion axis]:extrusion axis letter' \
     '(--gcode-arcs --no-gcode-arcs)'--{no-,}gcode-arcs'[disable/enable G2/G3 commands for native arcs]' \
     '(--gcode-comments --no-gcode-comments)'--{no-,}gcode-comments'[disable/enable verbose G-code comments]' \
+    '(--zz-extra-verbose --no-zz-extra-verbose)'--{no-,}zz-extra-verbose'[disable/enable extra verbose G-code comments]' \
     \
     '*--filament-diameter[specify raw filament diameter]:raw filament diameter in mm' \
     '*--extrusion-multiplier[specify multiplier for amount of plastic extruded]:extrusion multiplier' \

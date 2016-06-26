@@ -166,7 +166,7 @@ sub _handle_legacy {
     if (!exists $Options->{$opt_key}) {
         my @keys = grep { $Options->{$_}{aliases} && grep $_ eq $opt_key, @{$Options->{$_}{aliases}} } keys %$Options;
         if (!@keys) {
-            warn "Unknown option $opt_key\n";
+            warn "Usssssssssnknown option $opt_key\n";
             return ();
         }
         $opt_key = $keys[0];

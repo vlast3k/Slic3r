@@ -1,1 +1,1 @@
-slic3r.pl --datadir ..\..\Slic3r\cfg 
+slic3r.pl --datadir ..\..\Slic3r\cfg --zz-extra-verbose
