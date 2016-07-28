@@ -634,7 +634,7 @@ GCode::travel_to(const Point &point, ExtrusionRole role, std::string comment)
     this->avoid_crossing_perimeters.use_external_mp_once = false;
     
     // generate G-code for the travel move
-    if (travel.lines().begin()->length() * SCALING_FACTOR > 2 && this->first_layer) needs_retraction = true;
+    //if (travel.lines().begin()->length() * SCALING_FACTOR > 2 && this->first_layer) needs_retraction = true;
     //std::size_t found = comment.find("infill");
     if (comment.find("infill") != std::string::npos && this->first_layer) needs_retraction = false;
     
@@ -651,17 +651,22 @@ GCode::travel_to(const Point &point, ExtrusionRole role, std::string comment)
         ss1 << ";Will Travel: " << line_length << ", on layer height: " << this->layer->print_z <<  ", id" << this->layer->id() << "\n";
         gcode += ss1.str();
         
-/*        if (this->first_layer) {
-           gcode += this->writer.travel_to_z(0.1, "extrude move");
+        if (this->first_layer && line_length > 3) {
+           if (needs_retraction) {
+               gcode += this->unretract();
+               gcode += this->writer.travel_to_z(this->layer->print_z, "extrude move on layer height");
+           } else {
+               gcode += this->writer.travel_to_z(0.1, "extrude move on layer height");
+           }
            double fil_sq = 3.14f *1.75f*1.75f/4;
            double exr_line = 0.1f*0.5f;
            double e = exr_line *line_length/fil_sq;
            //double e_per_mm = this->writer.extruder()->e_per_mm3 * path.mm3_per_mm;
            gcode += this->writer.extrude_to_xy(this->point_to_gcode(line->b), e, comment);
            gcode += this->writer.travel_to_z(this->layer->print_z, "return");
-        } else {*/
+        } else {
             gcode += this->writer.travel_to_xy(this->point_to_gcode(line->b), comment);
-       // }
+        }
     }
 
     if (this->config.cooling)
