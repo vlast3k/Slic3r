@@ -4,6 +4,9 @@
 #include <cstdlib>
 #include <math.h>
 
+
+bool lowerSpeed = false;
+
 namespace Slic3r {
 
 AvoidCrossingPerimeters::AvoidCrossingPerimeters()
@@ -566,7 +569,11 @@ GCode::_extrude(ExtrusionPath path, std::string description, double speed)
     // extrude arc or line
     if (path.is_bridge() && this->enable_cooling_markers)
         gcode += ";_BRIDGE_FAN_START\n";
-    gcode += this->writer.set_speed(F, "", this->enable_cooling_markers ? ";_EXTRUDE_SET_SPEED" : "");
+    if (lowerSpeed) {
+        gcode += this->writer.set_speed(600, "", this->enable_cooling_markers ? ";_EXTRUDE_SET_SPEED" : "");
+    } else {
+        gcode += this->writer.set_speed(F, "", this->enable_cooling_markers ? ";_EXTRUDE_SET_SPEED" : "");
+    }
     double path_length = 0;
     {
         std::string comment = this->config.gcode_comments ? description : "";
@@ -574,13 +581,18 @@ GCode::_extrude(ExtrusionPath path, std::string description, double speed)
         for (Lines::const_iterator line = lines.begin(); line != lines.end(); ++line) {
             const double line_length = line->length() * SCALING_FACTOR;
             path_length += line_length;
-            
+                
             gcode += this->writer.extrude_to_xy(
                 this->point_to_gcode(line->b),
                 e_per_mm * line_length,
                 comment
             );
+            if (path_length > 10 && lowerSpeed) {
+                lowerSpeed = false;
+                gcode += this->writer.set_speed(F, "", this->enable_cooling_markers ? ";_EXTRUDE_SET_SPEED" : "");
+            }
         }
+        lowerSpeed = false;
     }
     if (this->wipe.enable) {
         this->wipe.path = path.polyline;
@@ -596,6 +608,7 @@ GCode::_extrude(ExtrusionPath path, std::string description, double speed)
     
     return gcode;
 }
+
 
 // This method accepts &point in print coordinates.
 std::string
@@ -619,7 +632,7 @@ GCode::travel_to(const Point &point, ExtrusionRole role, std::string comment)
         && this->config.avoid_crossing_perimeters
         && !this->avoid_crossing_perimeters.disable_once) {
         travel = this->avoid_crossing_perimeters.travel_to(*this, point);
-        
+        gcode += ";HERE!!!!!\n";
         // check again whether the new travel path still needs a retraction
         needs_retraction = this->needs_retraction(travel, role);
         std::stringstream ss;
@@ -636,7 +649,8 @@ GCode::travel_to(const Point &point, ExtrusionRole role, std::string comment)
     // generate G-code for the travel move
     //if (travel.lines().begin()->length() * SCALING_FACTOR > 2 && this->first_layer) needs_retraction = true;
     //std::size_t found = comment.find("infill");
-    if (comment.find("infill") != std::string::npos && this->first_layer) needs_retraction = false;
+    bool willDoInfill = (comment.find("infill") != std::string::npos);
+    //if (comment.find("infill") != std::string::npos && this->first_layer) needs_retraction = false;
     
 
     if (needs_retraction) gcode += this->retract();
@@ -651,19 +665,21 @@ GCode::travel_to(const Point &point, ExtrusionRole role, std::string comment)
         ss1 << ";Will Travel: " << line_length << ", on layer height: " << this->layer->print_z <<  ", id" << this->layer->id() << "\n";
         gcode += ss1.str();
         
-        if (this->first_layer && line_length > 3) {
+        if (this->first_layer && line_length > 3 && !willDoInfill) {
            if (needs_retraction) {
                gcode += this->unretract();
                gcode += this->writer.travel_to_z(this->layer->print_z, "extrude move on layer height");
            } else {
-               gcode += this->writer.travel_to_z(0.1, "extrude move on layer height");
+               gcode += this->writer.travel_to_z(0.1, "extrude move 333");
            }
            double fil_sq = 3.14f *1.75f*1.75f/4;
-           double exr_line = 0.1f*0.5f;
+           double exr_line = 0.1f*0.4f;
            double e = exr_line *line_length/fil_sq;
            //double e_per_mm = this->writer.extruder()->e_per_mm3 * path.mm3_per_mm;
+          // gcode += "G1 F6000\n";
            gcode += this->writer.extrude_to_xy(this->point_to_gcode(line->b), e, comment);
            gcode += this->writer.travel_to_z(this->layer->print_z, "return");
+           lowerSpeed = true;
         } else {
             gcode += this->writer.travel_to_xy(this->point_to_gcode(line->b), comment);
         }
